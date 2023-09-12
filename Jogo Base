@@ -1,0 +1,167 @@
+import pygame
+import random
+import time
+
+# Inicialização do Pygame
+pygame.init()
+
+# Cores neon disponíveis
+NEON_COLORS = [(0, 255, 255), (255, 0, 255), (255, 165, 0)]
+
+# Tamanho da janela
+WIDTH, HEIGHT = 800, 600
+win = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Jogo Neon")
+
+# Função para mostrar o menu
+def menu():
+    font = pygame.font.Font(None, 36)
+    player_color_index = 0  # Índice da cor selecionada para o corredor
+    enemy_color_index = 1   # Índice da cor selecionada para o caçador
+    player_name = "Corredor"
+    enemy_name = "Caçador"
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    player_color_index = (player_color_index - 1) % len(NEON_COLORS)
+                elif event.key == pygame.K_DOWN:
+                    player_color_index = (player_color_index + 1) % len(NEON_COLORS)
+                elif event.key == pygame.K_LEFT:
+                    enemy_color_index = (enemy_color_index - 1) % len(NEON_COLORS)
+                elif event.key == pygame.K_RIGHT:
+                    enemy_color_index = (enemy_color_index + 1) % len(NEON_COLORS)
+                elif event.key == pygame.K_RETURN:
+                    player_color = NEON_COLORS[player_color_index]
+                    enemy_color = NEON_COLORS[enemy_color_index]
+                    return player_color, enemy_color, player_name, enemy_name
+                elif event.key == pygame.K_BACKSPACE:
+                    if player_name:
+                        player_name = player_name[:-1]
+                elif event.key == pygame.K_TAB:
+                    if enemy_name:
+                        enemy_name = enemy_name[:-1]
+                else:
+                    player_name += event.unicode
+                    enemy_name += event.unicode
+
+        win.fill((0, 0, 0))
+        player_color_text = font.render("Escolha a cor do Corredor (cima/baixo):", True, NEON_COLORS[player_color_index])
+        enemy_color_text = font.render("Escolha a cor do Caçador (esquerda/direita):", True, NEON_COLORS[enemy_color_index])
+        player_text = font.render(f"Nome do Corredor: {player_name}", True, (255, 255, 255))
+        enemy_text = font.render(f"Nome do Caçador: {enemy_name}", True, (255, 255, 255))
+        start_text = font.render("Pressione ENTER para iniciar", True, (255, 255, 255))
+
+        win.blit(player_color_text, (200, 150))
+        win.blit(enemy_color_text, (200, 200))
+        win.blit(player_text, (200, 250))
+        win.blit(enemy_text, (200, 300))
+        win.blit(start_text, (200, 400))
+
+        pygame.display.update()
+
+# Função para mostrar a tela de vitória
+def show_victory_screen(winner_name):
+    font = pygame.font.Font(None, 72)
+    text = font.render(f"{winner_name} VENCEU!", True, (255, 255, 255))
+    win.fill((0, 0, 0))
+    win.blit(text, (200, 250))
+    pygame.display.update()
+    time.sleep(2)  # Aguarda por 2 segundos
+
+# Obter as cores e nomes do jogador e do inimigo do menu
+player_color, enemy_color, player_name, enemy_name = menu()
+
+# Posições iniciais do jogador e do inimigo
+player_x, player_y = WIDTH // 2, HEIGHT // 2
+enemy_x, enemy_y = random.randint(0, WIDTH), random.randint(0, HEIGHT)
+
+# Tamanho dos personagens
+character_size = 20
+
+# Velocidades
+player_speed = 0.7
+enemy_speed = 0.5
+
+# Direção inicial do jogador
+player_direction = "stop"  # Inicialmente, o jogador não se move
+
+# Iniciar o cronômetro
+start_time = time.time()
+time_limit = 40  # Tempo limite em segundos
+
+# Loop principal do jogo
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Movimento do jogador
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and player_x > 0:
+        player_direction = "left"
+    elif keys[pygame.K_RIGHT] and player_x < WIDTH - character_size:
+        player_direction = "right"
+    elif keys[pygame.K_UP] and player_y > 0:
+        player_direction = "up"
+    elif keys[pygame.K_DOWN] and player_y < HEIGHT - character_size:
+        player_direction = "down"
+    else:
+        player_direction = "stop"
+
+    # Movimento do jogador
+    if player_direction == "left":
+        player_x -= player_speed
+    elif player_direction == "right":
+        player_x += player_speed
+    elif player_direction == "up":
+        player_y -= player_speed
+    elif player_direction == "down":
+        player_y += player_speed
+
+    # Movimento do inimigo (controlado pelas teclas WASD)
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_a] and enemy_x > 0:
+        enemy_x -= enemy_speed
+    if keys[pygame.K_d] and enemy_x < WIDTH - character_size:
+        enemy_x += enemy_speed
+    if keys[pygame.K_w] and enemy_y > 0:
+        enemy_y -= enemy_speed
+    if keys[pygame.K_s] and enemy_y < HEIGHT - character_size:
+        enemy_y += enemy_speed
+
+    # Verificar colisões
+    if abs(player_x - enemy_x) < character_size and abs(player_y - enemy_y) < character_size:
+        show_victory_screen(enemy_name)  # O Caçador venceu
+        break
+
+    # Verificar o cronômetro
+    elapsed_time = time.time() - start_time
+    if elapsed_time >= time_limit:
+        show_victory_screen(player_name)  # O Corredor venceu
+        break
+
+    # Preencher a tela
+    win.fill((0, 0, 0))
+    
+    # Desenhar jogador com a cor escolhida
+    pygame.draw.rect(win, player_color, (player_x, player_y, character_size, character_size))
+
+    # Desenhar inimigo com a cor escolhida
+    pygame.draw.rect(win, enemy_color, (enemy_x, enemy_y, character_size, character_size))
+
+    # Exibir o cronômetro
+    remaining_time = max(0, time_limit - elapsed_time)
+    font = pygame.font.Font(None, 36)
+    timer_text = font.render(f"Tempo Restante: {int(remaining_time)} segundos", True, (255, 255, 255))
+    win.blit(timer_text, (10, 10))
+
+    pygame.display.update()
+
+# Finalizar o Pygame
+pygame.quit()
